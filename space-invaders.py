@@ -1,6 +1,6 @@
 import pygame
 import random
-from helpers_pygame import get_image
+from helpers_pygame import get_image, display_text
 BOUNDARY = 500
 SPEED = 65
 BULLET_SPEED = 5
@@ -8,10 +8,11 @@ ENEMIES_SPEED = 2
 ENEMIES_NUMBER = 15
 PLAYER_SPEED = 2
 FLAG = False
+GREEN = (0, 180, 0)
+BLACK = (0, 0, 0)
 player_bullets = pygame.sprite.RenderPlain()
 enemy_bullets = pygame.sprite.RenderPlain()
 enemies = pygame.sprite.RenderPlain()
-
 
 
 class Background(pygame.sprite.Sprite):
@@ -96,6 +97,7 @@ class Game:
         self.SCREEN_HEIGHT = 700
         self.display = pygame.display.set_mode(size=(self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         self.can_shoot = True
+        self.score = 0
         pygame.time.set_timer(pygame.USEREVENT+2, 600) # Timer for enemy shooting
         pygame.time.set_timer(pygame.USEREVENT+3, 80) # Timer for player animation
         pygame.display.set_caption("Space Invaders")
@@ -138,16 +140,20 @@ class Game:
         enemy_bullets.draw(game.display)
         player_bullets.update()
         enemy_bullets.update()
-        pygame.sprite.groupcollide(player_bullets, enemies, True, True)
+        player_hits = pygame.sprite.groupcollide(player_bullets, enemies, True, True)
+        for hit in player_hits:
+            self.score += 1
         pygame.sprite.groupcollide(enemy_bullets, players, True, True)
         enemies.draw(game.display)
         enemies.update()
+        display_text(self.display, "bottomleft", 0, self.SCREEN_HEIGHT, font, f"Score: {str(self.score)}", GREEN, BLACK)
         if FLAG:
             ENEMIES_SPEED = -ENEMIES_SPEED
             FLAG = False
         pygame.display.flip()
 
 game = Game()
+font = pygame.font.Font('freesansbold.ttf', 32)
 bg = Background("images/bg.png",[0,0])
 player_sheet = pygame.image.load("images/statek.png")
 images = [get_image(player_sheet, 1.5, x, 39, 39) for x in range(15)]
