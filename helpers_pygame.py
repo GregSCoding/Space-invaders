@@ -21,6 +21,4 @@ def display_text(display, orientation, x, y, font, text, txt_color, bg_color):
         textRect.topright =  (x, y)
     elif orientation.lower() == "bottomright":
         textRect.bottomright =  (x, y)
-
-    
     display.blit(text, textRect)
