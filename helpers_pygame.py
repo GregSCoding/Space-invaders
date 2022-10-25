@@ -8,8 +8,9 @@ def get_image(sheet, scale, frame, width, height):
     
     return image
 
-def display_text(display, orientation, x, y, font, text, txt_color, bg_color):
-    text = font.render(text, True, txt_color, bg_color)
+def display_text(display, orientation, x, y, font, text, txt_color):
+    text = font.render(text, True, txt_color)
+    text.set_alpha(256)
     textRect = text.get_rect()
     if orientation.lower() == "bottomleft":
         textRect.bottomleft = (x, y)
