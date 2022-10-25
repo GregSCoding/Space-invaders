@@ -147,7 +147,7 @@ class Game:
             self.game_over = True
         enemies.draw(game.display)
         enemies.update()
-        display_text(self.display, "bottomleft", 0, self.SCREEN_HEIGHT, font, f"Score: {str(self.score)}", GREEN, BLACK)
+        display_text(self.display, "bottomleft", 0, self.SCREEN_HEIGHT, font, f"Score: {str(self.score)}", GREEN)
         if FLAG:
             ENEMIES_SPEED = -ENEMIES_SPEED
             FLAG = False
@@ -157,6 +157,7 @@ class Game:
 
 game = Game()
 font = pygame.font.Font('freesansbold.ttf', 32)
+font2 = pygame.font.Font('freesansbold.ttf', 64)
 bg = Background("images/bg.png",[0,0])
 player_sheet = pygame.image.load("images/statek.png")
 images = [get_image(player_sheet, 1.5, x, 39, 39) for x in range(8)]
@@ -173,18 +174,28 @@ while not game.game_over:
     game.clock.tick(SPEED)
     game.next_turn()
     game.update_ui()
-    
-pygame.time.set_timer(pygame.USEREVENT+4, 1000, loops = 10)
+
+pygame.time.set_timer(pygame.USEREVENT+2, 0)
+pygame.time.set_timer(pygame.USEREVENT+3, 5000)
+pygame.time.set_timer(pygame.USEREVENT+4, 600, loops = 8)
 stay = player.images.pop()
-player.frame = 0
+player.frame = 1
 player.images = [pygame.image.load("images/blank.png"), stay]
-while True:
+over_screen = True
+while over_screen:
     game.display.blit(bg.image, bg.rect)
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+            elif event.type == pygame.USEREVENT+3:
+                over_screen = False
             elif event.type == pygame.USEREVENT+4:
                 player.image_swap()
     game.display.blit(player.image, player.rect)
     pygame.display.flip()
+
+display_text(game.display, "center", game.SCREEN_WIDTH//2, game.SCREEN_HEIGHT//2, font2, "GAME OVER", GREEN)
+display_text(game.display, "center", game.SCREEN_WIDTH//2, game.SCREEN_HEIGHT//2+64, font, f"SCORE: {game.score}", GREEN)
+pygame.display.flip()
+pygame.time.wait(5000)
