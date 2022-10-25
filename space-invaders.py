@@ -6,7 +6,7 @@ SPEED = 65
 BULLET_SPEED = 5
 ENEMIES_SPEED = 2
 ENEMIES_NUMBER = 15
-PLAYER_SPEED = 2
+PLAYER_SPEED = 3
 FLAG = False
 GREEN = (0, 180, 0)
 BLACK = (0, 0, 0)
@@ -31,9 +31,8 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
     def image_swap(self):
-        self.frame = (self.frame + 1) % 4
+        self.frame = (self.frame + 1) % len(self.images)
         self.image = self.images[self.frame]
-
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -88,8 +87,7 @@ class Enemy(pygame.sprite.Sprite):
         else:
             self.current_image = 1
         self.image = self.images[self.current_image]
-        
-        
+              
 class Game:
     def __init__(self):
         self.clock = pygame.time.Clock()
@@ -98,7 +96,8 @@ class Game:
         self.display = pygame.display.set_mode(size=(self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         self.can_shoot = True
         self.score = 0
-        pygame.time.set_timer(pygame.USEREVENT+2, 600) # Timer for enemy shooting
+        self.game_over = False
+        pygame.time.set_timer(pygame.USEREVENT+2, 100) # Timer for enemy shooting
         pygame.time.set_timer(pygame.USEREVENT+3, 80) # Timer for player animation
         pygame.display.set_caption("Space Invaders")
         pygame.init()
@@ -109,12 +108,12 @@ class Game:
                 pygame.quit()
                 quit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and game.can_shoot:
+                if event.key == pygame.K_SPACE and self.can_shoot:
                     Bullet("images/laser.png", [player.rect.left+28, player.rect.top-30], "player")
                     pygame.time.set_timer(pygame.USEREVENT+1, 1500, loops=1) # Timer to prevent cosntant player fire
-                    game.can_shoot = False
+                    self.can_shoot = False
             elif event.type == pygame.USEREVENT+1:
-                game.can_shoot = True
+                self.can_shoot = True
             elif event.type == pygame.USEREVENT+2:
                 idx = random.randint(0, len(enemies)-1)
                 enemies.sprites()[idx].shoot()
@@ -143,7 +142,9 @@ class Game:
         player_hits = pygame.sprite.groupcollide(player_bullets, enemies, True, True)
         for hit in player_hits:
             self.score += 1
-        pygame.sprite.groupcollide(enemy_bullets, players, True, True)
+        death = pygame.sprite.groupcollide(enemy_bullets, players, True, True)
+        if death:
+            self.game_over = True
         enemies.draw(game.display)
         enemies.update()
         display_text(self.display, "bottomleft", 0, self.SCREEN_HEIGHT, font, f"Score: {str(self.score)}", GREEN, BLACK)
@@ -152,11 +153,13 @@ class Game:
             FLAG = False
         pygame.display.flip()
 
+
+
 game = Game()
 font = pygame.font.Font('freesansbold.ttf', 32)
 bg = Background("images/bg.png",[0,0])
 player_sheet = pygame.image.load("images/statek.png")
-images = [get_image(player_sheet, 1.5, x, 39, 39) for x in range(15)]
+images = [get_image(player_sheet, 1.5, x, 39, 39) for x in range(8)]
 player = Player(images, [game.SCREEN_WIDTH//2, game.SCREEN_HEIGHT - 42])
 players = pygame.sprite.RenderPlain()
 players.add(player)
@@ -166,7 +169,22 @@ for i in range(ENEMIES_NUMBER):
     enemies.add(Enemy("images/ufolud2-1.png", "images/ufolud2-2.png", [i*50, 40]))
     enemies.add(Enemy("images/ufolud1-1.png", "images/ufolud1-2.png", [i*50, 80]))
 
-while(True):
+while not game.game_over:
     game.clock.tick(SPEED)
     game.next_turn()
     game.update_ui()
+    
+pygame.time.set_timer(pygame.USEREVENT+4, 1000, loops = 10)
+stay = player.images.pop()
+player.frame = 0
+player.images = [pygame.image.load("images/blank.png"), stay]
+while True:
+    game.display.blit(bg.image, bg.rect)
+    for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.USEREVENT+4:
+                player.image_swap()
+    game.display.blit(player.image, player.rect)
+    pygame.display.flip()
