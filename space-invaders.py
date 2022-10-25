@@ -1,6 +1,6 @@
 import pygame
 import random
-
+from helpers_pygame import get_image
 BOUNDARY = 500
 SPEED = 65
 BULLET_SPEED = 5
@@ -13,13 +13,6 @@ enemy_bullets = pygame.sprite.RenderPlain()
 enemies = pygame.sprite.RenderPlain()
 
 
-def get_image(sheet, frame, width, height):
-    image = pygame.Surface((width, height)).convert_alpha()
-    image.blit(sheet, (0,0), ((frame * width), 0, width, height))
-    #image = pygame.transform.scale(image,(width*5, height*5))
-    image.set_colorkey((0, 0, 0))
-
-    return image
 
 class Background(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
@@ -115,7 +108,7 @@ class Game:
                 quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and game.can_shoot:
-                    Bullet("images/laser.png", [player.rect.left+27, player.rect.top-30], "player")
+                    Bullet("images/laser.png", [player.rect.left+28, player.rect.top-30], "player")
                     pygame.time.set_timer(pygame.USEREVENT+1, 1500, loops=1) # Timer to prevent cosntant player fire
                     game.can_shoot = False
             elif event.type == pygame.USEREVENT+1:
@@ -146,7 +139,7 @@ class Game:
         player_bullets.update()
         enemy_bullets.update()
         pygame.sprite.groupcollide(player_bullets, enemies, True, True)
-        #pygame.sprite.groupcollide(enemy_bullets, players, True, True)
+        pygame.sprite.groupcollide(enemy_bullets, players, True, True)
         enemies.draw(game.display)
         enemies.update()
         if FLAG:
@@ -155,10 +148,9 @@ class Game:
         pygame.display.flip()
 
 game = Game()
-font = pygame.font.SysFont(None, 20)
 bg = Background("images/bg.png",[0,0])
 player_sheet = pygame.image.load("images/statek.png")
-images = [get_image(player_sheet, x, 39, 39) for x in range(15)]
+images = [get_image(player_sheet, 1.5, x, 39, 39) for x in range(15)]
 player = Player(images, [game.SCREEN_WIDTH//2, game.SCREEN_HEIGHT - 42])
 players = pygame.sprite.RenderPlain()
 players.add(player)
