@@ -9,7 +9,8 @@ SCREEN_HEIGHT = 700
 BOUNDARY = 500
 SPEED = 65
 BULLET_SPEED = 5
-ENEMIES_SPEED = 2
+ENEMIES_SPEED_HORI = 2
+ENEMIES_SPEED_VERTI = 0
 ENEMIES_NUMBER = 15
 PLAYER_SPEED = 3
 FLAG = False
@@ -70,7 +71,8 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, image_file1, image_file2, location):
         pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
         self.current_image = random.randint(0, 1)
-        self.frame_timer = 80
+        self.frame_timer = 60
+        self.verti_move = 0
         self.images = (pygame.image.load(image_file1), pygame.image.load(image_file2))
         self.image = self.images[self.current_image]
         self.rect = self.image.get_rect()
@@ -79,7 +81,11 @@ class Enemy(pygame.sprite.Sprite):
     # Update position and flag, swap image for animation
     def update(self):
         global FLAG
-        self.rect.left += ENEMIES_SPEED
+        self.rect.left += ENEMIES_SPEED_HORI
+        self.verti_move += ENEMIES_SPEED_VERTI
+        if self.verti_move > 1:
+            self.rect.top += 1
+            self.verti_move = 0
         if self.rect.left <= 0 or self.rect.left >= game.SCREEN_WIDTH - 40:
             FLAG = True
         if self.frame_timer < pygame.time.get_ticks():
@@ -108,6 +114,7 @@ class Game:
         self.game_over = False
         self.bg = Background("images/bg.png",[0,0])
         player_sheet = pygame.image.load("images/statek.png")
+        # Get image is a function for getting individual images from a spritesheet
         ship_images = [get_image(player_sheet, 1.5, x, 39, 39) for x in range(8)]
         self.player = Player(ship_images, [self.SCREEN_WIDTH//2, self.SCREEN_HEIGHT - 42])
         players.add(self.player)
@@ -147,7 +154,7 @@ class Game:
 # Update score according to hits
     def update_ui(self):
         global FLAG
-        global ENEMIES_SPEED
+        global ENEMIES_SPEED_HORI
         self.display.blit(self.bg.image, self.bg.rect)
         players.draw(self.display)
         player_bullets.draw(self.display)
@@ -164,14 +171,13 @@ class Game:
         enemies.update()
         display_text(self.display, "bottomleft", 0, self.SCREEN_HEIGHT, font, f"Score: {str(self.score)}", GREEN)
         if FLAG:
-            ENEMIES_SPEED = -ENEMIES_SPEED
+            ENEMIES_SPEED_HORI = -ENEMIES_SPEED_HORI
             FLAG = False
         pygame.display.flip()
 
 game = Game()
 
-
-# Populate the screen with diffrent enemy in each row
+# Populate the screen with diffrent enemies in each row
 for i in range(ENEMIES_NUMBER):
     enemies.add(Enemy("images/ufolud3-1.png", "images/ufolud3-2.png", [i*50, 0]))
     enemies.add(Enemy("images/ufolud2-1.png", "images/ufolud2-2.png", [i*50, 40]))
@@ -193,7 +199,8 @@ pygame.time.set_timer(pygame.USEREVENT+4, 600, loops = 8)
 stay = game.player.images.pop()
 game.player.frame = 1
 game.player.images = [pygame.image.load("images/blank.png"), stay]
-
+ENEMIES_SPEED_VERTI = 0.7
+ENEMIES_SPEED_HORI = 0
 over_screen = True
 # Game over animation
 while over_screen:
@@ -207,9 +214,11 @@ while over_screen:
             elif event.type == pygame.USEREVENT+4:
                 game.player.image_swap()
     game.display.blit(game.player.image, game.player.rect)
+    enemies.draw(game.display)
+    enemies.update()
     pygame.display.flip()
-
+game.display.blit(game.bg.image, game.bg.rect)
 display_text(game.display, "center", game.SCREEN_WIDTH//2, game.SCREEN_HEIGHT//2, font2, "GAME OVER", GREEN)
 display_text(game.display, "center", game.SCREEN_WIDTH//2, game.SCREEN_HEIGHT//2+64, font, f"SCORE: {game.score}", GREEN)
 pygame.display.flip()
-pygame.time.wait(5000)
+pygame.time.wait(3000)
