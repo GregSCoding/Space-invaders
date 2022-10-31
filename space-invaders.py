@@ -20,6 +20,7 @@ player_bullets = pygame.sprite.RenderPlain()
 enemy_bullets = pygame.sprite.RenderPlain()
 enemies = pygame.sprite.RenderPlain()
 players = pygame.sprite.RenderPlain()
+explosions = pygame.sprite.RenderPlain()
 font = pygame.font.Font('freesansbold.ttf', 32)
 font2 = pygame.font.Font('freesansbold.ttf', 64)
 
@@ -41,7 +42,6 @@ class Player(pygame.sprite.Sprite):
     def image_swap(self):
         self.frame = (self.frame + 1) % len(self.images)
         self.image = self.images[self.frame]
-
 
 class Bullet(pygame.sprite.Sprite):
     # Init bullet object, add to a sprite group depending on the shooter
@@ -85,7 +85,7 @@ class Enemy(pygame.sprite.Sprite):
         self.verti_move += ENEMIES_SPEED_VERTI
         if self.verti_move > 1:
             self.rect.top += 1
-            self.verti_move = 0
+            self.verti_move -= 1
         if self.rect.left <= 0 or self.rect.left >= game.SCREEN_WIDTH - 40:
             FLAG = True
         if self.frame_timer < pygame.time.get_ticks():
@@ -101,7 +101,24 @@ class Enemy(pygame.sprite.Sprite):
         else:
             self.current_image = 1
         self.image = self.images[self.current_image]
-              
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, image_file, location):
+        pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
+        self.frame = 0
+        self.images = image_file
+        self.image = self.images[self.frame]
+        self.rect = self.image.get_rect()
+        self.rect.left, self.rect.top = location
+        explosions.add(self)
+    def image_swap(self):
+        self.frame = (self.frame + 1) % len(self.images)
+        self.image = self.images[self.frame]
+        if self.frame == 31:
+            self.kill()
+    def update(self):
+        self.image_swap()        
+
 class Game:
     # Initialize the games display, necesarry timers and players spreadsheet
     def __init__(self):
@@ -114,12 +131,18 @@ class Game:
         self.game_over = False
         self.bg = Background("images/bg.png",[0,0])
         player_sheet = pygame.image.load("images/statek.png")
+        explosion_sheet = pygame.image.load("images/explosion.png")
         # Get image is a function for getting individual images from a spritesheet
-        ship_images = [get_image(player_sheet, 1.5, x, 39, 39) for x in range(8)]
+        ship_images = [get_image(player_sheet, x, 39, 39, scale=1.5) for x in range(8)]
+        self.explosion_images = []
+        for i in range(4):
+            for j in range(8):
+                self.explosion_images.append(get_image(explosion_sheet, j, 256, 251, row=i,scale=0.16)) 
         self.player = Player(ship_images, [self.SCREEN_WIDTH//2, self.SCREEN_HEIGHT - 42])
         players.add(self.player)
         pygame.time.set_timer(pygame.USEREVENT+2, 100) # Timer for enemy shooting
         pygame.time.set_timer(pygame.USEREVENT+3, 80) # Timer for player animation
+        pygame.time.set_timer(pygame.USEREVENT+4, 15) # Timer for explosion animation
         pygame.display.set_caption("Space Invaders")
     # Handle the events (players and enemies shooting, player movement)
     def next_turn(self):
@@ -139,6 +162,9 @@ class Game:
                 enemies.sprites()[idx].shoot()
             elif event.type == pygame.USEREVENT+3:
                 self.player.image_swap()
+                
+            elif event.type == pygame.USEREVENT+4:
+                explosions.update()
         keys = pygame.key.get_pressed() 
         if keys[pygame.K_LEFT]:
             self.player.rect.left -= PLAYER_SPEED
@@ -159,15 +185,17 @@ class Game:
         players.draw(self.display)
         player_bullets.draw(self.display)
         enemy_bullets.draw(self.display)
+        explosions.draw(self.display)
+        enemies.draw(self.display)
         player_bullets.update()
         enemy_bullets.update()
-        player_hits = pygame.sprite.groupcollide(player_bullets, enemies, True, True)
-        for hit in player_hits:
+        player_hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
+        for enemy in player_hits:
             self.score += 1
+            Explosion(self.explosion_images, (enemy.rect.left+(5*ENEMIES_SPEED_HORI), enemy.rect.top))
         death = pygame.sprite.groupcollide(enemy_bullets, players, True, True)
         if death:
             self.game_over = True
-        enemies.draw(self.display)
         enemies.update()
         display_text(self.display, "bottomleft", 0, self.SCREEN_HEIGHT, font, f"Score: {str(self.score)}", GREEN)
         if FLAG:
@@ -176,7 +204,6 @@ class Game:
         pygame.display.flip()
 
 game = Game()
-
 # Populate the screen with diffrent enemies in each row
 for i in range(ENEMIES_NUMBER):
     enemies.add(Enemy("images/ufolud3-1.png", "images/ufolud3-2.png", [i*50, 0]))
@@ -194,12 +221,12 @@ pygame.time.set_timer(pygame.USEREVENT+1, 0)
 pygame.time.set_timer(pygame.USEREVENT+2, 0)
 pygame.time.set_timer(pygame.USEREVENT+3, 0)
 pygame.time.set_timer(pygame.USEREVENT+5, 5000)
-pygame.time.set_timer(pygame.USEREVENT+4, 600, loops = 8)
+pygame.time.set_timer(pygame.USEREVENT+4, 600, loops = 6)
 # Change player images for the blinking effect
 stay = game.player.images.pop()
 game.player.frame = 1
 game.player.images = [pygame.image.load("images/blank.png"), stay]
-ENEMIES_SPEED_VERTI = 0.7
+ENEMIES_SPEED_VERTI = 0.8
 ENEMIES_SPEED_HORI = 0
 over_screen = True
 # Game over animation
