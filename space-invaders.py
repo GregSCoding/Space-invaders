@@ -13,6 +13,7 @@ ENEMIES_SPEED_HORI = 2
 ENEMIES_SPEED_VERTI = 0
 ENEMIES_NUMBER = 15
 PLAYER_SPEED = 3
+LIVES = 3
 FLAG = False
 GREEN = (0, 180, 0)
 BLACK = (0, 0, 0)
@@ -20,6 +21,7 @@ player_bullets = pygame.sprite.RenderPlain()
 enemy_bullets = pygame.sprite.RenderPlain()
 enemies = pygame.sprite.RenderPlain()
 players = pygame.sprite.RenderPlain()
+hearts = pygame.sprite.RenderPlain()
 explosions = pygame.sprite.RenderPlain()
 font = pygame.font.Font('freesansbold.ttf', 32)
 font2 = pygame.font.Font('freesansbold.ttf', 64)
@@ -30,7 +32,7 @@ class Background(pygame.sprite.Sprite):
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
-
+        
 class Player(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
         pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
@@ -39,6 +41,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.images[self.frame]
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
+        self.can_be_hit = True
     def image_swap(self):
         self.frame = (self.frame + 1) % len(self.images)
         self.image = self.images[self.frame]
@@ -119,6 +122,13 @@ class Explosion(pygame.sprite.Sprite):
     def update(self):
         self.image_swap()        
 
+class Heart(pygame.sprite.Sprite):
+    def __init__(self, image_file, location):
+        pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
+        self.image = pygame.image.load(image_file)
+        self.rect = self.image.get_rect()
+        self.rect.right, self.rect.bottom = location
+        hearts.add(self)
 class Game:
     # Initialize the games display, necesarry timers and players spreadsheet
     def __init__(self):
@@ -162,9 +172,10 @@ class Game:
                 enemies.sprites()[idx].shoot()
             elif event.type == pygame.USEREVENT+3:
                 self.player.image_swap()
-                
             elif event.type == pygame.USEREVENT+4:
                 explosions.update()
+            elif event.type == pygame.USEREVENT+5:
+                self.player.can_be_hit = True
         keys = pygame.key.get_pressed() 
         if keys[pygame.K_LEFT]:
             self.player.rect.left -= PLAYER_SPEED
@@ -187,15 +198,21 @@ class Game:
         enemy_bullets.draw(self.display)
         explosions.draw(self.display)
         enemies.draw(self.display)
+        hearts.draw(self.display)
         player_bullets.update()
         enemy_bullets.update()
         player_hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
         for enemy in player_hits:
             self.score += 1
             Explosion(self.explosion_images, (enemy.rect.left+(5*ENEMIES_SPEED_HORI), enemy.rect.top))
-        death = pygame.sprite.groupcollide(enemy_bullets, players, True, True)
-        if death:
-            self.game_over = True
+        death = pygame.sprite.groupcollide(enemy_bullets, players, True, False)
+        if death and self.player.can_be_hit:
+            lost = lives.pop()
+            lost.kill()
+            pygame.time.set_timer(pygame.USEREVENT+5, 2000, loops = 1)
+            self.player.can_be_hit = False
+            if not lives:
+                self.game_over = True
         enemies.update()
         display_text(self.display, "bottomleft", 0, self.SCREEN_HEIGHT, font, f"Score: {str(self.score)}", GREEN)
         if FLAG:
@@ -204,7 +221,11 @@ class Game:
         pygame.display.flip()
 
 game = Game()
-# Populate the screen with diffrent enemies in each row
+# Populate the screen with diffrent enemies in each row and hearts
+lives = []
+for i in range(LIVES):
+    lives.append(Heart("images/heart2.png", [SCREEN_WIDTH-(i*35),SCREEN_HEIGHT]))
+
 for i in range(ENEMIES_NUMBER):
     enemies.add(Enemy("images/ufolud3-1.png", "images/ufolud3-2.png", [i*50, 0]))
     enemies.add(Enemy("images/ufolud2-1.png", "images/ufolud2-2.png", [i*50, 40]))
