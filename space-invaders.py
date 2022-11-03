@@ -34,15 +34,21 @@ class Background(pygame.sprite.Sprite):
         self.rect.left, self.rect.top = location
         
 class Player(pygame.sprite.Sprite):
-    def __init__(self, image_file, location):
+    def __init__(self, image_file_normal, image_file_blink, location):
         pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
         self.frame = 0
-        self.images = image_file
+        self.blink = image_file_blink
+        self.normal = image_file_normal
+        self.images = self.normal
         self.image = self.images[self.frame]
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
         self.can_be_hit = True
     def image_swap(self):
+        if not self.can_be_hit:
+            self.images = self.blink
+        else:
+            self.images = self.normal
         self.frame = (self.frame + 1) % len(self.images)
         self.image = self.images[self.frame]
 
@@ -144,11 +150,12 @@ class Game:
         explosion_sheet = pygame.image.load("images/explosion.png")
         # Get image is a function for getting individual images from a spritesheet
         ship_images = [get_image(player_sheet, x, 39, 39, scale=1.5) for x in range(8)]
+        blink = [get_image(player_sheet, x//2, 39, 39, scale=1.5) if x%2==0 else pygame.image.load("images/blank.png") for x in range(15)]
         self.explosion_images = []
         for i in range(4):
             for j in range(8):
                 self.explosion_images.append(get_image(explosion_sheet, j, 256, 251, row=i,scale=0.16)) 
-        self.player = Player(ship_images, [self.SCREEN_WIDTH//2, self.SCREEN_HEIGHT - 42])
+        self.player = Player(ship_images, blink,[self.SCREEN_WIDTH//2, self.SCREEN_HEIGHT - 42])
         players.add(self.player)
         pygame.time.set_timer(pygame.USEREVENT+2, 100) # Timer for enemy shooting
         pygame.time.set_timer(pygame.USEREVENT+3, 80) # Timer for player animation
